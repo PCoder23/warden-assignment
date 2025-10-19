@@ -1,3 +1,5 @@
+import { getCache, setCache, weatherCache } from "../utils/custom-cache";
+
 export async function fetchWeatherData(
   latitude: number | null | undefined,
   longitude: number | null | undefined
@@ -9,6 +11,12 @@ export async function fetchWeatherData(
   if (!latitude || !longitude) {
     return null;
   }
+
+  const key = `${latitude.toFixed(4)},${longitude.toFixed(4)}`;
+
+  // Try cache first
+  const cached = getCache(weatherCache, key);
+  if (cached) return cached;
 
   try {
     const params = new URLSearchParams({
@@ -26,11 +34,13 @@ export async function fetchWeatherData(
     }
 
     const data = await response.json();
-    return {
+    const result = {
       temperature: data.current.temperature_2m,
       humidity: data.current.relative_humidity_2m,
       weatherCode: data.current.weather_code,
     };
+    setCache(weatherCache, key, result, 10 * 60 * 1000);
+    return result;
   } catch (error) {
     console.error("Weather fetch error:", error);
     return null;

@@ -3,6 +3,7 @@ import { prisma } from "../database/prisma";
 import { Prisma } from "@prisma/client";
 import { ParamsValidator } from "../validators/paramsValidator";
 import { matchesWeatherFilters } from "../services/weather.service";
+import { dbCache, setCache, getCache } from "../utils/custom-cache";
 
 const DESIRED_RESULTS = 20;
 const FETCH_BATCH_SIZE = 50;
@@ -80,12 +81,22 @@ export const getProperties = async (req: Request, res: Response) => {
 
     while (matched.length < DESIRED_RESULTS && attempt < MAX_ATTEMPTS) {
       // Fetch batch from database
-      const properties = await prisma.property.findMany({
-        skip,
-        take: FETCH_BATCH_SIZE,
-        where: whereClause,
-        orderBy: { id: "asc" },
-      });
+      const dbCacheKey = JSON.stringify({ whereClause, skip });
+
+      // Check DB cache
+      let properties = getCache(dbCache, dbCacheKey);
+      if (!properties) {
+        console.log(`Cache miss for skip=${skip}, fetching from DB`);
+        properties = await prisma.property.findMany({
+          skip,
+          take: FETCH_BATCH_SIZE,
+          where: whereClause,
+          orderBy: { id: "asc" },
+        });
+        setCache(dbCache, dbCacheKey, properties, 24 * 60 * 60 * 1000);
+      } else {
+        console.log(`Cache hit for skip=${skip}`);
+      }
 
       console.log(
         `Attempt ${attempt + 1}: fetched ${properties.length} properties`
