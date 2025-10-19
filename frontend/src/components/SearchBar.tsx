@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useState, useEffect } from "react";
+import { useState, useRef, useCallback } from "react";
 
 interface SearchBarProps {
   onSearch: (text: string) => void;
@@ -9,14 +9,23 @@ interface SearchBarProps {
 
 export default function SearchBar({ onSearch }: SearchBarProps) {
   const [value, setValue] = useState("");
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      onSearch(value);
-    }, 500);
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const newValue = e.target.value;
+      setValue(newValue);
 
-    return () => clearTimeout(timer);
-  }, [value]);
+      // Clear previous timer
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+
+      // Start a new debounce timer
+      debounceRef.current = setTimeout(() => {
+        onSearch(newValue.trim());
+      }, 500); // 500ms debounce delay
+    },
+    [onSearch]
+  );
 
   return (
     <div className="flex gap-2">
@@ -25,8 +34,10 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
         type="text"
         placeholder="Search by property name, city, or state..."
         value={value}
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-          setValue(e.target.value)
+        onChange={
+          // (e: React.ChangeEvent<HTMLInputElement>) =>
+          // setValue(e.target.value)
+          handleChange
         }
       />
     </div>
