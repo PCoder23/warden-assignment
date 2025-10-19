@@ -2,7 +2,10 @@ import { Request, Response } from "express";
 import { prisma } from "../database/prisma";
 import { Prisma } from "@prisma/client";
 import { ParamsValidator } from "../validators/paramsValidator";
-import { matchesWeatherFilters } from "../services/weather.service";
+import {
+  batchFetchWeatherData,
+  matchesWeatherFilters,
+} from "../services/weather.service";
 import { dbCache, setCache, getCache } from "../utils/custom-cache";
 
 const DESIRED_RESULTS = 20;
@@ -106,20 +109,17 @@ export const getProperties = async (req: Request, res: Response) => {
         break; // No more properties in database
       }
 
-      // Check weather filters for this batch
+      const weatherMap = await batchFetchWeatherData(properties);
+
+      // Filter based on weather
       for (const property of properties) {
-        // Check if we already have 20 matches
         if (matched.length >= DESIRED_RESULTS) {
           break;
         }
 
-        const { matches, weather } = await matchesWeatherFilters(
-          property,
-          weatherFilters
-        );
+        const weather = weatherMap.get(property.id);
 
-        if (matches) {
-          // Attach weather data to property
+        if (matchesWeatherFilters(weather, weatherFilters)) {
           matched.push({
             ...property,
             weather,
