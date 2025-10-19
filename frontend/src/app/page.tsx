@@ -65,7 +65,9 @@ export default function Home() {
         );
 
         const response = await fetch(
-          `http://localhost:5000/get-properties?${params.toString()}`
+          `${
+            process.env.NEXT_PUBLIC_API_URL
+          }/get-properties?${params.toString()}`
         );
 
         if (!response.ok) {
