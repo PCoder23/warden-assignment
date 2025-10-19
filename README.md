@@ -97,6 +97,11 @@ NEXT_PUBLIC_API_URL=http://localhost:5000
 2. Start frontend: `cd frontend && npm run dev`
 3. Open browser to `http://localhost:3000`
 
+## Live Demo
+
+- Frontend: https://warden-assignment.vercel.app/
+- Backend API: https://warden-assignment-1.onrender.com/
+
 ## Troubleshooting
 
 - Backend won't start: Verify database connection in `.env` and check if PORT 5000 is available
