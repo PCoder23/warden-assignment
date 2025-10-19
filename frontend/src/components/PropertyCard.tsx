@@ -1,5 +1,6 @@
 "use client";
 import { MapPin, Thermometer, Droplets } from "lucide-react";
+import { WEATHER_CODE_MAP } from "@/lib/constants";
 
 interface Property {
   id: number;
@@ -23,21 +24,51 @@ interface PropertyCardProps {
   weather?: WeatherData;
 }
 
+// function getWeatherDescription(code: number): string {
+//   if (code === 0) return "Clear Sky";
+//   if ([1, 2, 3].includes(code)) return "Cloudy";
+//   if ([51, 52, 53, 54, 55, 56, 57].includes(code)) return "Drizzle";
+//   if ([61, 62, 63, 64, 65, 66, 67, 80, 81, 82].includes(code)) return "Rainy";
+//   if ([71, 72, 73, 74, 75, 76, 77, 85, 86].includes(code)) return "Snow";
+//   return "Unknown";
+// }
+
+// function getWeatherEmoji(code: number): string {
+//   if (code === 0) return "☀️";
+//   if ([1, 2, 3].includes(code)) return "☁️";
+//   if ([51, 52, 53, 54, 55, 56, 57].includes(code)) return "🌦️";
+//   if ([61, 62, 63, 64, 65, 66, 67, 80, 81, 82].includes(code)) return "🌧️";
+//   if ([71, 72, 73, 74, 75, 76, 77, 85, 86].includes(code)) return "❄️";
+//   return "🌍";
+// }
+
 function getWeatherDescription(code: number): string {
-  if (code === 0) return "Clear Sky";
-  if ([1, 2, 3].includes(code)) return "Cloudy";
-  if ([51, 52, 53, 54, 55, 56, 57].includes(code)) return "Drizzle";
-  if ([61, 62, 63, 64, 65, 66, 67, 80, 81, 82].includes(code)) return "Rainy";
-  if ([71, 72, 73, 74, 75, 76, 77, 85, 86].includes(code)) return "Snow";
+  for (const [key, codes] of Object.entries(WEATHER_CODE_MAP)) {
+    if (codes.includes(code)) {
+      return key.charAt(0).toUpperCase() + key.slice(1);
+    }
+  }
   return "Unknown";
 }
-
 function getWeatherEmoji(code: number): string {
-  if (code === 0) return "☀️";
-  if ([1, 2, 3].includes(code)) return "☁️";
-  if ([51, 52, 53, 54, 55, 56, 57].includes(code)) return "🌦️";
-  if ([61, 62, 63, 64, 65, 66, 67, 80, 81, 82].includes(code)) return "🌧️";
-  if ([71, 72, 73, 74, 75, 76, 77, 85, 86].includes(code)) return "❄️";
+  for (const [key, codes] of Object.entries(WEATHER_CODE_MAP)) {
+    if (codes.includes(code)) {
+      switch (key) {
+        case "clear":
+          return "☀️";
+        case "cloudy":
+          return "☁️";
+        case "drizzle":
+          return "🌦️";
+        case "rainy":
+          return "🌧️";
+        case "snow":
+          return "❄️";
+        default:
+          return "🌍";
+      }
+    }
+  }
   return "🌍";
 }
 
