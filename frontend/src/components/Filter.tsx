@@ -25,46 +25,53 @@ const WEATHER_CONDITIONS = [
 
 export default function Filter({ filters, onFilterChange }: FilterPanelProps) {
   const [expanded, setExpanded] = useState(true);
+  const [pendingFilters, setPendingFilters] = useState<Filters>(filters);
 
   const handleTempMinChange = (value: number) => {
-    const newMin = Math.min(value, filters.tempMax);
-    onFilterChange({ ...filters, tempMin: newMin });
+    const newMin = Math.min(value, pendingFilters.tempMax);
+    setPendingFilters({ ...pendingFilters, tempMin: newMin });
   };
 
   const handleTempMaxChange = (value: number) => {
-    const newMax = Math.max(value, filters.tempMin);
-    onFilterChange({ ...filters, tempMax: newMax });
+    const newMax = Math.max(value, pendingFilters.tempMin);
+    setPendingFilters({ ...pendingFilters, tempMax: newMax });
   };
 
   const handleHumidityMinChange = (value: number) => {
-    const newMin = Math.min(value, filters.humidityMax);
-    onFilterChange({ ...filters, humidityMin: newMin });
+    const newMin = Math.min(value, pendingFilters.humidityMax);
+    setPendingFilters({ ...pendingFilters, humidityMin: newMin });
   };
 
   const handleHumidityMaxChange = (value: number) => {
-    const newMax = Math.max(value, filters.humidityMin);
-    onFilterChange({ ...filters, humidityMax: newMax });
+    const newMax = Math.max(value, pendingFilters.humidityMin);
+    setPendingFilters({ ...pendingFilters, humidityMax: newMax });
   };
 
   const handleWeatherConditionToggle = (condition: string) => {
-    const updated = filters.weatherConditions.includes(condition)
-      ? filters.weatherConditions.filter((c) => c !== condition)
-      : [...filters.weatherConditions, condition];
-    onFilterChange({ ...filters, weatherConditions: updated });
+    const updated = pendingFilters.weatherConditions.includes(condition)
+      ? pendingFilters.weatherConditions.filter((c) => c !== condition)
+      : [...pendingFilters.weatherConditions, condition];
+    setPendingFilters({ ...pendingFilters, weatherConditions: updated });
+  };
+
+  const handleApplyFilters = () => {
+    onFilterChange(pendingFilters);
   };
 
   const handleReset = () => {
-    onFilterChange({
+    const resetFilters = {
       tempMin: -20,
       tempMax: 50,
       humidityMin: 0,
       humidityMax: 100,
       weatherConditions: [],
-    });
+    };
+    setPendingFilters(resetFilters);
+    onFilterChange(resetFilters);
   };
 
   return (
-    <div className="p-6 flex flex-col gap-6 rounded-xl border py-6 shadow-sm border-[#e5e5e5]">
+    <div className="p-6 flex flex-col gap-6 rounded-xl border py-6 shadow-sm border-[#e5e5e5] h-max sticky top-4 bg-white">
       <div className="flex items-center justify-between mb-4">
         <button
           onClick={() => setExpanded(!expanded)}
@@ -90,7 +97,8 @@ export default function Filter({ filters, onFilterChange }: FilterPanelProps) {
           {/* Temperature Range */}
           <div>
             <label className="block text-sm font-medium  mb-3">
-              Temperature Range: {filters.tempMin}°C to {filters.tempMax}°C
+              Temperature Range: {pendingFilters.tempMin}°C to{" "}
+              {pendingFilters.tempMax}°C
             </label>
             <div className="space-y-2">
               <div className="flex gap-4">
@@ -100,7 +108,7 @@ export default function Filter({ filters, onFilterChange }: FilterPanelProps) {
                     type="range"
                     min="-20"
                     max="50"
-                    value={filters.tempMin}
+                    value={pendingFilters.tempMin}
                     onChange={(e) =>
                       handleTempMinChange(Number(e.target.value))
                     }
@@ -113,7 +121,7 @@ export default function Filter({ filters, onFilterChange }: FilterPanelProps) {
                     type="range"
                     min="-20"
                     max="50"
-                    value={filters.tempMax}
+                    value={pendingFilters.tempMax}
                     onChange={(e) =>
                       handleTempMaxChange(Number(e.target.value))
                     }
@@ -127,7 +135,8 @@ export default function Filter({ filters, onFilterChange }: FilterPanelProps) {
           {/* Humidity Range */}
           <div>
             <label className="block text-sm font-medium  mb-3">
-              Humidity Range: {filters.humidityMin}% to {filters.humidityMax}%
+              Humidity Range: {pendingFilters.humidityMin}% to{" "}
+              {pendingFilters.humidityMax}%
             </label>
             <div className="space-y-2">
               <div className="flex gap-4">
@@ -137,7 +146,7 @@ export default function Filter({ filters, onFilterChange }: FilterPanelProps) {
                     type="range"
                     min="0"
                     max="100"
-                    value={filters.humidityMin}
+                    value={pendingFilters.humidityMin}
                     onChange={(e) =>
                       handleHumidityMinChange(Number(e.target.value))
                     }
@@ -150,7 +159,7 @@ export default function Filter({ filters, onFilterChange }: FilterPanelProps) {
                     type="range"
                     min="0"
                     max="100"
-                    value={filters.humidityMax}
+                    value={pendingFilters.humidityMax}
                     onChange={(e) =>
                       handleHumidityMaxChange(Number(e.target.value))
                     }
@@ -166,13 +175,13 @@ export default function Filter({ filters, onFilterChange }: FilterPanelProps) {
             <label className="block text-sm font-medium  mb-3">
               Weather Conditions
             </label>
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {WEATHER_CONDITIONS.map((condition) => (
                 <button
                   key={condition.id}
                   onClick={() => handleWeatherConditionToggle(condition.id)}
                   className={`p-3 rounded-lg border-2 transition-all text-center ${
-                    filters.weatherConditions.includes(condition.id)
+                    pendingFilters.weatherConditions.includes(condition.id)
                       ? "bg-[#1717171a] border-black"
                       : "border-[#e5e5e5] hover:border-[#a3a3a3] "
                   }`}
@@ -182,6 +191,15 @@ export default function Filter({ filters, onFilterChange }: FilterPanelProps) {
                 </button>
               ))}
             </div>
+          </div>
+
+          <div className="flex gap-2 pt-4 border-t border-[#e5e5e5]">
+            <button
+              onClick={handleApplyFilters}
+              className="flex-1 bg-black text-white hover:bg-gray-800 inline-flex items-center justify-center text-sm font-medium transition-all shrink-0 outline-none h-9 rounded-md gap-1.5 px-3"
+            >
+              Apply Filters
+            </button>
           </div>
         </div>
       )}

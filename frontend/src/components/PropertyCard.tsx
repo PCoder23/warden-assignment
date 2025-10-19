@@ -41,7 +41,7 @@ function getWeatherEmoji(code: number): string {
   return "🌍";
 }
 
-export function PropertyCard({ property, weather }: PropertyCardProps) {
+export default function PropertyCard({ property, weather }: PropertyCardProps) {
   return (
     <div className="p-6 hover:shadow-lg transition-shadow flex flex-col gap-6 rounded-xl border py-6 shadow-sm border-[#e5e5e5]">
       <div className="space-y-4">

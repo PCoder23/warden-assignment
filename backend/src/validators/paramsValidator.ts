@@ -70,23 +70,22 @@ export class ParamsValidator {
   static validateWeatherConditions(conditions?: string | string[]): {
     valid: boolean;
     error?: string;
-    parsed?: string[];
+    parsed?: number[];
   } {
-    if (!conditions) return { valid: true };
+    if (!conditions) return { valid: true, parsed: [] };
 
-    const validConditions = ["clear", "cloudy", "drizzle", "rainy", "snow"];
     const condArray = Array.isArray(conditions) ? conditions : [conditions];
 
-    const invalid = condArray.filter(
-      (c) => !validConditions.includes(c.toLowerCase())
-    );
-    if (invalid.length > 0) {
-      return {
-        valid: false,
-        error: `Invalid conditions: ${invalid.join(", ")}`,
-      };
+    // Ensure all are numeric strings or valid numeric values
+    const parsedCodes: number[] = [];
+    for (const c of condArray) {
+      const num = parseInt(c, 10);
+      if (isNaN(num)) {
+        return { valid: false, error: `Invalid condition value: ${c}` };
+      }
+      parsedCodes.push(num);
     }
 
-    return { valid: true, parsed: condArray };
+    return { valid: true, parsed: parsedCodes };
   }
 }

@@ -1,94 +1,84 @@
-import axios from "axios";
-
-interface WeatherData {
+export async function fetchWeatherData(
+  latitude: number | null | undefined,
+  longitude: number | null | undefined
+): Promise<{
   temperature: number;
   humidity: number;
   weatherCode: number;
+} | null> {
+  if (!latitude || !longitude) {
+    return null;
+  }
+
+  try {
+    const params = new URLSearchParams({
+      latitude: latitude.toString(),
+      longitude: longitude.toString(),
+      current: "temperature_2m,relative_humidity_2m,weather_code",
+    });
+
+    const response = await fetch(
+      `https://api.open-meteo.com/v1/forecast?${params.toString()}`
+    );
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = await response.json();
+    return {
+      temperature: data.current.temperature_2m,
+      humidity: data.current.relative_humidity_2m,
+      weatherCode: data.current.weather_code,
+    };
+  } catch (error) {
+    console.error("Weather fetch error:", error);
+    return null;
+  }
 }
 
-interface WeatherCacheEntry {
-  data: WeatherData;
-  timestamp: number;
-}
+export async function matchesWeatherFilters(
+  property: any,
+  filters: {
+    tempMin?: number;
+    tempMax?: number;
+    humidityMin?: number;
+    humidityMax?: number;
+    conditions?: number[];
+  }
+): Promise<{ matches: boolean; weather: any }> {
+  const weather = await fetchWeatherData(property.lat, property.lng);
 
-const WEATHER_CACHE = new Map<string, WeatherCacheEntry>();
-const CACHE_TTL_MS = 3600000; // 1 hour
-const OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast";
-
-export class WeatherService {
-  private static getCacheKey(lat: number, lng: number): string {
-    return `${lat.toFixed(4)},${lng.toFixed(4)}`;
+  if (!weather) {
+    return { matches: false, weather: null };
   }
 
-  private static isCacheValid(entry: WeatherCacheEntry): boolean {
-    return Date.now() - entry.timestamp < CACHE_TTL_MS;
-  }
-
-  static async fetchWeather(lat: number, lng: number): Promise<WeatherData> {
-    const cacheKey = this.getCacheKey(lat, lng);
-
-    // Check cache first
-    const cached = WEATHER_CACHE.get(cacheKey);
-    if (cached && this.isCacheValid(cached)) {
-      return cached.data;
-    }
-
-    try {
-      const response = await axios.get(OPEN_METEO_URL, {
-        params: {
-          latitude: lat,
-          longitude: lng,
-          current: "temperature_2m,relative_humidity_2m,weather_code",
-          timezone: "auto",
-        },
-        timeout: 5000,
-      });
-
-      const current = response.data.current;
-      const weatherData: WeatherData = {
-        temperature: current.temperature_2m,
-        humidity: current.relative_humidity_2m,
-        weatherCode: current.weather_code,
-      };
-
-      // Cache the result
-      WEATHER_CACHE.set(cacheKey, {
-        data: weatherData,
-        timestamp: Date.now(),
-      });
-
-      return weatherData;
-    } catch (error) {
-      console.error(`Failed to fetch weather for (${lat}, ${lng}):`, error);
-      throw error;
+  // Check temperature
+  if (filters.tempMin !== undefined && filters.tempMax !== undefined) {
+    if (
+      weather.temperature < filters.tempMin ||
+      weather.temperature > filters.tempMax
+    ) {
+      return { matches: false, weather };
     }
   }
 
-  static async fetchWeatherBatch(
-    coordinates: Array<{ lat: number; lng: number; id: number }>
-  ): Promise<Map<number, WeatherData>> {
-    const results = new Map<number, WeatherData>();
-
-    // Fetch in parallel with concurrency limit (5 concurrent requests)
-    const concurrency = 5;
-    for (let i = 0; i < coordinates.length; i += concurrency) {
-      const batch = coordinates.slice(i, i + concurrency);
-      const promises = batch.map(async (coord) => {
-        try {
-          const weather = await this.fetchWeather(coord.lat, coord.lng);
-          results.set(coord.id, weather);
-        } catch {
-          // Return null weather on failure
-          results.set(coord.id, {
-            temperature: 0,
-            humidity: 0,
-            weatherCode: -1,
-          });
-        }
-      });
-      await Promise.all(promises);
+  // Check humidity
+  if (filters.humidityMin !== undefined && filters.humidityMax !== undefined) {
+    if (
+      weather.humidity < filters.humidityMin ||
+      weather.humidity > filters.humidityMax
+    ) {
+      return { matches: false, weather };
     }
-
-    return results;
   }
+
+  // Check weather conditions
+  if (filters.conditions && filters.conditions.length > 0) {
+    if (!filters.conditions.includes(weather.weatherCode)) {
+      return { matches: false, weather };
+    }
+  }
+
+  return { matches: true, weather };
 }
