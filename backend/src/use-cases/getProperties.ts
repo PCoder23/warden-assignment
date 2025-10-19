@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { prisma } from "../database/prisma";
 import { Prisma } from "@prisma/client";
 import { WeatherService } from "../services/weather.service";
+import { ParamsValidator } from "../validators/paramsValidator";
 import { WeatherFilterService } from "../services/weather-filter.service";
 
 export function buildPropertyWhere(
@@ -32,6 +33,36 @@ export function buildPropertyWhere(
 
 export const getProperties = async (req: Request, res: Response) => {
   try {
+    // Step 0 params validation
+    const tempVal = ParamsValidator.validateTempRange(
+      req.query.tempMin as string,
+      req.query.tempMax as string
+    );
+    if (!tempVal.valid) {
+      return res.status(400).json({ error: tempVal.error });
+    }
+
+    console.log("Temperature validation passed:", tempVal.parsed);
+
+    const humVal = ParamsValidator.validateHumidityRange(
+      req.query.humidityMin as string,
+      req.query.humidityMax as string
+    );
+    if (!humVal.valid) {
+      return res.status(400).json({ error: humVal.error });
+    }
+
+    console.log("Humidity validation passed:", humVal.parsed);
+
+    const condVal = ParamsValidator.validateWeatherConditions(
+      req.query.conditions as string | string[]
+    );
+    if (!condVal.valid) {
+      return res.status(400).json({ error: condVal.error });
+    }
+
+    console.log("Weather conditions validation passed:", condVal.parsed);
+
     // Step 1: Fetch properties from database with text search
     const properties = await prisma.property.findMany({
       take: 20,
