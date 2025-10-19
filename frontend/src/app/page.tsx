@@ -31,59 +31,9 @@ interface Filters {
   humidityMax: number;
   weatherConditions: string[];
 }
-
-const mockProperties: Property[] = [
-  {
-    id: 1,
-    name: "Palm Residency",
-    city: "Goa",
-    state: "Goa",
-    country: "India",
-    lat: 15.2993,
-    lng: 74.124,
-    isActive: true,
-    weather: { temperature: 32, humidity: 70, weatherCode: 1 },
-  },
-  {
-    id: 2,
-    name: "Hill View Apartments",
-    city: "Shimla",
-    state: "Himachal Pradesh",
-    country: "India",
-    lat: 31.1048,
-    lng: 77.1734,
-    isActive: true,
-    weather: { temperature: 12, humidity: 40, weatherCode: 3 },
-  },
-  {
-    id: 3,
-    name: "Riverfront Villa",
-    city: "Rishikesh",
-    state: "Uttarakhand",
-    country: "India",
-    lat: 30.0869,
-    lng: 78.2676,
-    isActive: true,
-    weather: { temperature: 25, humidity: 60, weatherCode: 61 },
-  },
-  {
-    id: 4,
-    name: "Snow Crest Chalet",
-    city: "Manali",
-    state: "Himachal Pradesh",
-    country: "India",
-    lat: 32.2396,
-    lng: 77.1887,
-    isActive: true,
-    weather: { temperature: -3, humidity: 50, weatherCode: 75 },
-  },
-];
-
 export default function Home() {
   const [searchText, setSearchText] = useState("");
-  // TODO: Remove mock data when backend is ready
-  const [properties, setProperties] = useState<Property[]>(mockProperties);
-  const [loading, setLoading] = useState(false);
+  const [properties, setProperties] = useState<Property[]>([]);
   const [filters, setFilters] = useState<Filters>({
     tempMin: -20,
     tempMax: 50,
@@ -92,27 +42,44 @@ export default function Home() {
     weatherConditions: [],
   });
 
-  //TODO: Fetch properties from the backend after backend is ready
-  const fetchProperties = async () => {};
-
+  const fetchProperties = async (
+    search: string = "",
+    activeFilters: Filters = filters
+  ) => {
+    try {
+      const params = new URLSearchParams();
+      if (search) params.append("searchText", search);
+      params.append("tempMin", activeFilters.tempMin.toString());
+      params.append("tempMax", activeFilters.tempMax.toString());
+      params.append("humidityMin", activeFilters.humidityMin.toString());
+      params.append("humidityMax", activeFilters.humidityMax.toString());
+      activeFilters.weatherConditions.forEach((cond) =>
+        params.append("conditions", cond)
+      );
+      const response = await fetch(
+        `http://localhost:5000/get-properties?${params.toString()}`
+      );
+      const data = await response.json();
+      setProperties(data || []);
+    } catch (error) {
+      console.error("Error fetching properties:", error);
+    }
+  };
   // Handle search
   const handleSearch = (text: string) => {
     setSearchText(text);
-    // TODO: Fetch properties based on search text after fetching is implemented
-    // fetchProperties();
+    fetchProperties(text, filters);
   };
 
   // Handle filter changes
   const handleFilterChange = (newFilters: Filters) => {
     setFilters(newFilters);
-    // TODO: Fetch properties based on filters after fetching is implemented
-    // fetchProperties();
+    fetchProperties(searchText, newFilters);
   };
 
   // Initial load
   useEffect(() => {
-    // TODO: Fetch properties from the backend after backend is ready
-    // fetchProperties();
+    fetchProperties("", filters);
   }, []);
 
   return (
@@ -148,11 +115,7 @@ export default function Home() {
 
         {/* Results */}
         <div>
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            </div>
-          ) : properties.length === 0 ? (
+          {properties.length === 0 ? (
             <div className="p-8 text-center border-[#e5e5e5] text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-sm">
               <p className="">No properties found matching your criteria.</p>
             </div>
